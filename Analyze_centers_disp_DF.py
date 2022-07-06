@@ -17,12 +17,15 @@ Notes:
     2. Histograms - makes hisograms , Q-Q plots
     3. compare_dist - plots 2 hisograms (test / simulation) to compare the dists.
 
+** V01 - 06/07/22 What's new?
+    1. Added: Correlation Heatmap and Distributions comparison plots
+    2. Auto - Saving Figures
+
 @Author: Yarden Zaki
 @Date: 07/01/2022
 @Version: 1.0
 @Links: https://github.com/yardenzaki
 @License: MIT
-
 """
 
 
@@ -35,6 +38,7 @@ from scipy.stats import norm
 from scipy import stats
 import tkinter as tk
 from tkinter import filedialog
+
 
 
 
@@ -78,8 +82,19 @@ def renaming_fun(x):
         return x
 
 def compare_dist(delta_disp_DF_Simulation,delta_disp_DF_Test):
-    ax_hist_x = sns.distplot(delta_disp_DF_Simulation["DX"], fit=norm , label="Simulation")
-    ax_hist_x = sns.distplot(delta_disp_DF_Test["DX"], fit=norm,label="Test")
+
+    plt.figure()
+    mean =delta_disp_DF_Simulation["DX"].mean()
+    std = delta_disp_DF_Simulation["DX"].std()
+    RMS = (mean**2 + std**2)**(0.5)
+    RMS = round(RMS, 2)
+    ax_hist_x = sns.distplot(delta_disp_DF_Simulation["DX"], fit=norm , label="Simulation RMS=" + str(RMS))
+    mean =delta_disp_DF_Test["DX"].mean()
+    std = delta_disp_DF_Test["DX"].std()
+    RMS = (mean**2 + std**2)**(0.5)
+    RMS = round(RMS, 2)
+    ax_hist_x = sns.distplot(delta_disp_DF_Test["DX"], fit=norm,label="Test RMS=" + str(RMS) )
+
     if USE_ANGULAR:
         title = "DX (urad) Distrib. Comparison"
     else:
@@ -90,10 +105,19 @@ def compare_dist(delta_disp_DF_Simulation,delta_disp_DF_Test):
     y_lim = ax_hist_x.get_ylim()
     plt.legend()
     plt.grid()
+    plt.savefig(title + '.png', dpi=300, bbox_inches='tight')
 
     plt.figure()
-    ax_hist_y = sns.distplot(delta_disp_DF_Simulation["DY"], fit=norm,label="Simulation")
-    ax_hist_y = sns.distplot(delta_disp_DF_Test["DY"], fit=norm,label="Test")
+    mean =delta_disp_DF_Simulation["DY"].mean()
+    std = delta_disp_DF_Simulation["DY"].std()
+    RMS = (mean**2 + std**2)**(0.5)
+    RMS = round(RMS, 2)
+    ax_hist_y = sns.distplot(delta_disp_DF_Simulation["DY"], fit=norm,label="Simulation RMS= " + str(RMS))
+    mean =delta_disp_DF_Test["DY"].mean()
+    std = delta_disp_DF_Test["DY"].std()
+    RMS = (mean**2 + std**2)**(0.5)
+    RMS = round(RMS, 2)
+    ax_hist_y = sns.distplot(delta_disp_DF_Test["DY"], fit=norm,label="Test RMS= "+ str(RMS))
     if USE_ANGULAR:
         title = "DY (urad) Distrib. Comparison"
     else:
@@ -104,9 +128,30 @@ def compare_dist(delta_disp_DF_Simulation,delta_disp_DF_Test):
     y_lim = ax_hist_y.get_ylim()
     plt.legend()
     plt.grid()
-    plt.show()
+    plt.savefig(title + '.png', dpi=300, bbox_inches='tight')
     return
 
+def Corr_Heatmaps(center_title,df):
+    """
+
+    :param center_title:
+    :param df:
+    :return: the corr. matrix between DX and DY in df
+    """
+    corr = np.corrcoef(list(df['DX']), list(df['DY']))
+    print("CORR",corr)
+
+    plt.figure(figsize=(6, 6))
+    heatmap = sns.heatmap(df.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG')
+    title = 'Correlation Heatmap - ' + center_title
+    heatmap.set_title(title , fontdict={'fontsize': 18}, pad=12);
+    # save heatmap as .png file
+    # dpi - sets the resolution of the saved image in dots/inches
+    # bbox_inches - when set to 'tight' - does not allow the labels to be cropped
+    plt.savefig( title+'.png', dpi=300, bbox_inches='tight')
+
+
+    return
 
 def Pairplot(center_title,df):
     delta_disp_DF_Simulation = df
@@ -114,9 +159,11 @@ def Pairplot(center_title,df):
     sns.set()
     cols = ['Frame', "DX", "DY"]
     g = sns.pairplot(delta_disp_DF_Simulation[cols], height=2.5, corner=True)
-    plt.suptitle(center_title + " PairPlot")
+    title = " PairPlot - " + center_title
+    plt.suptitle(title)
     g.map_lower(sns.kdeplot, levels=4, color=".2")
-    plt.show()
+    plt.savefig(title + '.png', dpi=300, bbox_inches='tight')
+
 
 def Histograms(center_title,df):
     delta_disp_DF_Simulation = df
@@ -127,6 +174,7 @@ def Histograms(center_title,df):
     Histogram - Kurtosis and skewness.
     Normal probability plot - Data distribution should closely follow the diagonal that represents the normal distribution.
     '''
+    fig = plt.figure()
     for_hist_x = delta_disp_DF_Simulation[["DX"]].copy()
     print(for_hist_x.describe())
     mean = round(delta_disp_DF_Simulation["DX"].mean(), 2)
@@ -142,17 +190,21 @@ def Histograms(center_title,df):
     else:
         title = "DX (pixels) Histogram"
 
-    plt.title(title + " - " + center_title)
+    title = title + " - " + center_title
+
+    plt.title(title)
 
     x_lim = ax_hist_x.get_xlim()
     y_lim = ax_hist_x.get_ylim()
     ax_hist_x.text(0.85 * x_lim[0], 0.7 * y_lim[1], stats_str, bbox=dict(facecolor='blue', alpha=0.1))
+    plt.savefig(title + '.png', dpi=300, bbox_inches='tight')
     ###
     fig = plt.figure()
     res = stats.probplot(delta_disp_DF_Simulation["DX"], plot=plt)
+    title = "Q-Q plot DX - " + center_title
+    plt.savefig(title + '.png', dpi=300, bbox_inches='tight')
 
     ###
-    fig = plt.figure()
     for_hist_y = delta_disp_DF_Simulation[["DY"]].copy()
     print(for_hist_y.describe())
     ###
@@ -172,17 +224,18 @@ def Histograms(center_title,df):
     else:
         title = "DY (pixels) Histogram"
 
-    plt.title(title + " - " + center_title)
+    title = title + " - " + center_title
+    plt.title(title)
     x_lim = ax_hist_y.get_xlim()
     y_lim = ax_hist_y.get_ylim()
     ax_hist_y.text(0.85 * x_lim[0], 0.7 * y_lim[1], stats_str, bbox=dict(facecolor='blue', alpha=0.1))
+    plt.savefig(title + '.png', dpi=300, bbox_inches='tight')
     ###
     fig = plt.figure()
     res = stats.probplot(delta_disp_DF_Simulation["DY"], plot=plt)
+    title = "Q-Q plot DY - " + center_title
+    plt.savefig(title + '.png', dpi=300, bbox_inches='tight')
     ###
-
-    plt.show()
-
 
 
 
@@ -193,9 +246,11 @@ print("Pick" , center_title , ".CSV - Dataframe")
 delta_disp_DF_Simulation = make_delta_disp_df()
 #print(delta_disp_DF_Simulation.head(20))
 
+Corr_Heatmaps(center_title,delta_disp_DF_Simulation)
 Pairplot(center_title,delta_disp_DF_Simulation)
 Histograms(center_title,delta_disp_DF_Simulation)
 
+plt.show()
 
 
 ############### TEST Centers
@@ -204,21 +259,13 @@ print("Pick" , center_title , ".CSV - Dataframe")
 delta_disp_DF_Test = make_delta_disp_df()
 #print(delta_disp_DF_Test.head(20))
 
-
+Corr_Heatmaps(center_title,delta_disp_DF_Test)
 Pairplot(center_title,delta_disp_DF_Test)
 Histograms(center_title,delta_disp_DF_Test)
 
-
-
-
+plt.show()
 
 
 compare_dist(delta_disp_DF_Simulation,delta_disp_DF_Test)
 
-# # Save fig
-# ax.legend(loc='best')
-# save_fig_title = fig_title + ".png"
-# figure_2save_title = os.path.join(extrap_folder_path, save_fig_title)
-# fig.savefig(figure_2save_title)
-
-
+plt.show()

@@ -20,3 +20,7 @@ Notes:
     1. Pairplot - makes paiplots
     2. Histograms - makes hisograms , Q-Q plots
     3. compare_dist - plots 2 hisograms (test / simulation) to compare the dists.
+
+** V01 - 06/07/22 What's new?
+    1. Added: Correlation Heatmap and Distributions comparison plots
+    2. Auto - Saving Figures
